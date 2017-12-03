@@ -30,8 +30,18 @@ namespace Blogifier
 
         public void ConfigureServices(IServiceCollection services)
         {
-            System.Action<DbContextOptionsBuilder> databaseOptions = options => 
-                options.UseSqlite(Configuration.GetConnectionString("DefaultConnection"));
+            System.Action<DbContextOptionsBuilder> databaseOptions = options =>
+            {
+                string connectionString = Configuration.GetConnectionString("DefaultConnection");
+                if(Configuration.GetValue<bool>("UseSQLServer"))
+                {
+                    options.UseSqlServer(connectionString);
+                }
+                else
+                {
+                    options.UseSqlite(connectionString);
+                }
+            };
 
             services.AddDbContext<ApplicationDbContext>(databaseOptions);
 
@@ -45,9 +55,9 @@ namespace Blogifier
             services.AddMvc()
             .ConfigureApplicationPartManager(p =>
             {
-                foreach (var assembly in Core.Configuration.GetAssemblies())
+                foreach(var assembly in Core.Configuration.GetAssemblies())
                 {
-                    if (assembly.GetName().Name != "Blogifier.Web" && assembly.GetName().Name != "Blogifier.Core")
+                    if(assembly.GetName().Name != "Blogifier.Web" && assembly.GetName().Name != "Blogifier.Core")
                     {
                         p.ApplicationParts.Add(new AssemblyPart(assembly));
                     }
@@ -59,7 +69,7 @@ namespace Blogifier
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            if (env.IsDevelopment())
+            if(env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
                 app.UseDatabaseErrorPage();
@@ -80,15 +90,15 @@ namespace Blogifier
 
             app.UseBlogifier(env);
 
-            if (!Core.Common.ApplicationSettings.UseInMemoryDatabase && Core.Common.ApplicationSettings.InitializeDatabase)
+            if(!Core.Common.ApplicationSettings.UseInMemoryDatabase && Core.Common.ApplicationSettings.InitializeDatabase)
             {
                 try
                 {
-                    using (var scope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
+                    using(var scope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
                     {
                         var db = scope.ServiceProvider.GetService<ApplicationDbContext>().Database;
                         db.EnsureCreated();
-                        if (db.GetPendingMigrations() != null)
+                        if(db.GetPendingMigrations() != null)
                         {
                             db.Migrate();
                         }
