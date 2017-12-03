@@ -5,7 +5,9 @@ using Blogifier.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,9 +18,10 @@ namespace Blogifier
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration, IHostingEnvironment env)
         {
             Configuration = configuration;
+            Environment = env;
 
             Log.Logger = new LoggerConfiguration()
               .Enrich.FromLogContext()
@@ -27,6 +30,7 @@ namespace Blogifier
         }
 
         public IConfiguration Configuration { get; }
+        public IHostingEnvironment Environment { get; }
 
         public void ConfigureServices(IServiceCollection services)
         {
@@ -64,6 +68,14 @@ namespace Blogifier
                 }
             });
 
+            if(!Environment.IsDevelopment())
+            {
+                services.Configure<MvcOptions>(options =>
+                {
+                    options.Filters.Add(new RequireHttpsAttribute());
+                });
+            }
+
             services.AddBlogifier(databaseOptions, Configuration);
         }
 
@@ -73,6 +85,12 @@ namespace Blogifier
             {
                 app.UseDeveloperExceptionPage();
                 app.UseDatabaseErrorPage();
+            }
+            else
+            {
+                var options = new RewriteOptions()
+                                .AddRedirectToHttps();
+                app.UseRewriter(options);
             }
 
             app.UseStaticFiles();
